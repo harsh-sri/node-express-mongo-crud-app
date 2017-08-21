@@ -1,0 +1,16 @@
+extends ../layout
+
+block content
+	h1.
+		#{title}
+	form#formAddBlob(name="adduser",method="post",action="/users")
+		p Name: 
+			input#inputName(type="text", placeholder="ex. John Smith", name="name")
+		p Phone:
+			input#inputPhone(type="number", placeholder="ex. 123456", name="phone")
+		p Email: 
+			input#inputEmail(type="email", name="email")
+		p Activate User?: 
+			input#inputActivate(type="checkbox", name="active")
+		p
+			button#btnSubmit(type="submit") submit

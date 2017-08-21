@@ -1,0 +1,19 @@
+extends ../layout
+
+block content
+	h1.
+		User ID #{user._id}
+	form(action='/users/#{user._id}/edit',method='post',name='updateblob',enctype='application/x-www-form-urlencoded')
+		p Name:
+			input#inputName(type='text', value='#{user.name}', name='name')
+		p Email:
+			input#inputEmail(type='email', value='#{user.email}', name='email')
+		p DOB:
+			input#inputPhone(type='number', value='#{user.phone}', name='phone')
+		p Active User?:
+			input#inputActive(type='checkbox', name='active', checked=('#{user.active}'==='true' ? "checked" : undefined))
+		p
+			input(type='hidden',value='PUT',name='_method')
+		p
+			button#btnSubmit(type='submit').
+				Update
