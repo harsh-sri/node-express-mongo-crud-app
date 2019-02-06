@@ -28,10 +28,7 @@ router.route('/')
             res.format({
               // html response will render the index.jade file in views/users
               html: function(){
-                res.render('users/index', {
-                  title: 'All users',
-                  'users': users
-                });
+                res.send({users});
               },
               // Json response wil show all users in json formats
               json: function(){
@@ -49,9 +46,11 @@ router.route('/')
           var email = req.body.email;
           var phone = req.body.phone;
           var active= req.body.active;
+          var deviceDetails = req.body.deviceDetails;
 
           // call the create function of our DB
           mongoose.model('User').create({
+            deviceDetails: deviceDetails,
             name: name,
             email:email,
             phone:phone,
@@ -76,8 +75,81 @@ router.route('/')
               })
             }
           })
-      })
+      });
 
+
+/**
+ * Added a route to update user 
+ */
+router.put('/update', function (req, res) {
+  var user = req.body;
+  var Guid = user.Guid;
+  delete user.Guid;
+  user.deviceDetails = user.deviceDetails[0];
+
+  mongoose.model('User').findById({_id: Guid}, function (err, response) {
+      if (err) {
+        return res.json(err);
+      }
+
+      if (Object.entries(response).length > 0) {
+        let devices = {};
+        devices = JSON.parse(JSON.stringify(response.deviceDetails));
+        let userDeviceToBeUpdate = devices.filter((device, index) => {
+          if( device.deviceId == user.deviceDetails.deviceId) {
+            device.ind = index;
+            return device;
+          }
+        });
+        
+        userDeviceToBeUpdate = userDeviceToBeUpdate[0];
+        if (user.deviceDetails && user.deviceDetails.deviceName && user.deviceDetails.deviceName !== userDeviceToBeUpdate.deviceName) {
+          userDeviceToBeUpdate.deviceName = user.deviceDetails.deviceName;
+        }
+
+        if (user.deviceDetails && user.deviceDetails.deviceOS && user.deviceDetails.deviceOS !== userDeviceToBeUpdate.deviceOS) {
+          userDeviceToBeUpdate.deviceOS = user.deviceDetails.deviceOS;
+        }
+
+        if (user.deviceDetails && user.deviceDetails.pushNotification && user.deviceDetails.pushNotification.hasOwnProperty('active')) {
+          userDeviceToBeUpdate.pushNotification.active = user.deviceDetails.pushNotification.active;
+        }
+       
+        // delete ind;
+        devices[userDeviceToBeUpdate.ind] = userDeviceToBeUpdate;
+        delete user.deviceDetails;
+        delete userDeviceToBeUpdate;
+        // now we have a formmated user object
+        mongoose.model('User').update({_id:Guid}, {'$set': {'deviceDetails': devices, 'active':user.active}}, function(err, result) {
+          if(err) {
+            return res.send(err);
+          }
+          return res.send({clientReq: user, result:result});
+
+        })
+
+        
+        //mongoose.model('User').update({_id: user.Guid}, {'$set': {}})
+      } else {
+        return res.send({'msg': 'Oops! no data found with given Guid.', data:response.deviceDetails, resType: typeof response});
+      }
+
+  })
+});
+
+
+// Route to delete record
+
+router.delete('/delete', function (req, res) {
+  let id = req.body.id
+  console.log(id);
+  mongoose.model('User').remove({_id:id}, function (err, re) {
+    if(err) {
+      console.log(err);
+    } 
+    res.send(re.result);
+  });
+})
 
 router.get('/new', function(req, res){
   res.render('users/new', {title:'Add New User'});
