@@ -1,3 +1,4 @@
+
 var express = require('express');
 var router = express.Router();
 var mongoose = require('mongoose');
@@ -20,7 +21,7 @@ router.route('/')
       // get all users
       .get(function(req, res, next){
         // retrive all users from Mongo
-        mongoose.model('User').find({}, function(err, users){
+        mongoose.model('User').findOne({_id:'5c5ab22a78d0832997042a6d'}, function(err, users){
           if(err){
             return console.error(err);
           }else{
@@ -94,33 +95,40 @@ router.put('/update', function (req, res) {
 
       if (Object.entries(response).length > 0) {
         let devices = {};
-        devices = JSON.parse(JSON.stringify(response.deviceDetails));
+        devices = response.deviceDetails;//JSON.parse(JSON.stringify(response.deviceDetails));
         let userDeviceToBeUpdate = devices.filter((device, index) => {
           if( device.deviceId == user.deviceDetails.deviceId) {
             device.ind = index;
             return device;
           }
         });
+        if(userDeviceToBeUpdate.length > 0) {
+            userDeviceToBeUpdate = userDeviceToBeUpdate[0];
+          if (user.deviceDetails && user.deviceDetails.deviceName && user.deviceDetails.deviceName !== userDeviceToBeUpdate.deviceName) {
+            userDeviceToBeUpdate.deviceName = user.deviceDetails.deviceName;
+          }
+
+          if (user.deviceDetails && user.deviceDetails.deviceOS && user.deviceDetails.deviceOS !== userDeviceToBeUpdate.deviceOS) {
+            userDeviceToBeUpdate.deviceOS = user.deviceDetails.deviceOS;
+          }
+
+          if (user.deviceDetails && user.deviceDetails.pushNotification && user.deviceDetails.pushNotification.hasOwnProperty('active')) {
+            userDeviceToBeUpdate.pushNotification.active = user.deviceDetails.pushNotification.active;
+          }
         
-        userDeviceToBeUpdate = userDeviceToBeUpdate[0];
-        if (user.deviceDetails && user.deviceDetails.deviceName && user.deviceDetails.deviceName !== userDeviceToBeUpdate.deviceName) {
-          userDeviceToBeUpdate.deviceName = user.deviceDetails.deviceName;
+          // delete ind;
+          let deviceIndex = userDeviceToBeUpdate.ind;
+          delete userDeviceToBeUpdate.ind;
+          devices[deviceIndex] = userDeviceToBeUpdate;
+          delete user.deviceDetails;
+          delete userDeviceToBeUpdate;
+        } else {
+          devices[devices.length] = user.deviceDetails;
         }
-
-        if (user.deviceDetails && user.deviceDetails.deviceOS && user.deviceDetails.deviceOS !== userDeviceToBeUpdate.deviceOS) {
-          userDeviceToBeUpdate.deviceOS = user.deviceDetails.deviceOS;
-        }
-
-        if (user.deviceDetails && user.deviceDetails.pushNotification && user.deviceDetails.pushNotification.hasOwnProperty('active')) {
-          userDeviceToBeUpdate.pushNotification.active = user.deviceDetails.pushNotification.active;
-        }
-       
-        // delete ind;
-        devices[userDeviceToBeUpdate.ind] = userDeviceToBeUpdate;
-        delete user.deviceDetails;
-        delete userDeviceToBeUpdate;
+        
+        user.deviceDetails = devices;
         // now we have a formmated user object
-        mongoose.model('User').update({_id:Guid}, {'$set': {'deviceDetails': devices, 'active':user.active}}, function(err, result) {
+        mongoose.model('User').update({_id:Guid}, {'$set': user}, function(err, result) {
           if(err) {
             return res.send(err);
           }
